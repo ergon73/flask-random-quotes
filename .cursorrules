@@ -1,0 +1,124 @@
+# Flask Random Quotes — Cursor Rules
+
+## Контекст
+Домашка VD08 (Работа с API): Flask‑приложение, которое показывает случайные цитаты из публичных API.
+Паттерн урока: Flask + requests + Jinja2 + Bootstrap, роут `/` с GET/POST.
+
+## Главные принципы
+- Делать **просто** и **как на уроке**.
+- Весь backend код — **в одном** `main.py`.
+- Шаблон — один `templates/index.html`.
+- Ошибки API не должны ронять приложение: показываем alert.
+
+## Стек
+- Python 3.10+
+- Flask 3.x
+- requests
+- python-dotenv
+- Bootstrap 5.x (CDN)
+- pytest
+
+## Структура (строго)
+```
+.
+├── main.py
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── LICENSE
+├── README.md
+├── templates/
+│   └── index.html
+└── tests/
+    └── test_quotes.py
+```
+
+## Паттерн main.py (как на уроке)
+
+### Импорты / инициализация
+```python
+from flask import Flask, render_template, request
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+app = Flask(__name__)
+API_TIMEOUT = 8
+```
+
+### Правила для requests
+- Всегда указывать `timeout=API_TIMEOUT`
+- Перед `json()` делать `response.raise_for_status()`
+- Ловить `requests.exceptions.RequestException` и `ValueError` (битый JSON)
+
+### Нормализованный формат
+```python
+{
+  "text": str,
+  "author": str,
+  "source": str,
+  "meta": dict
+}
+```
+
+Ошибка:
+```python
+{"error": "Понятное сообщение", "source": "..." }
+```
+
+### Функции-источники (обязательно)
+- `fetch_quoteslate()`
+- `fetch_zenquotes()`
+- `fetch_apininjas(api_key)`
+
+### Запуск (как на уроке)
+```python
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+### Роут
+```python
+@app.route("/", methods=["GET", "POST"])
+def index():
+    # GET -> дефолтная цитата
+    # POST -> выбранный источник из формы
+    return render_template("index.html", ...)
+```
+
+## Паттерн index.html (Bootstrap 5)
+- Bootstrap подключать через CDN
+- Форма POST: select + кнопка
+- Ошибка: `alert alert-danger`
+- Цитата: card
+- Footer: attribution ZenQuotes + credit QuoteSlate
+
+## API источники (точно)
+
+### QuoteSlate (без ключа)
+- URL: https://quoteslate.vercel.app/api/quotes/random
+- Ответ: объект `{quote, author, tags...}`
+
+### ZenQuotes (без ключа, нужна атрибуция, ответ массив)
+- URL: https://zenquotes.io/api/random
+- Ответ: массив `[{"q": "...", "a": "..."}]`
+
+### API Ninjas (ключ, ответ массив)
+- URL: https://api.api-ninjas.com/v2/randomquotes
+- Header: `X-Api-Key: <KEY>`
+- Env: `API_NINJAS_KEY`
+- Ответ: массив `[{"quote": "...", "author": "...", "work": "...", "categories": [...]}]`
+
+## Тесты
+- Никаких реальных HTTP запросов в тестах
+- Всегда мокать `requests.get`
+- pytest должен проходить локально
+
+## Запрещено
+- Flask-WTF, SQLAlchemy, базы данных
+- отдельные CSS/JS файлы
+- выносить API в отдельные python модули
+- хардкодить ключи/секреты
+- усложнять проект
+
